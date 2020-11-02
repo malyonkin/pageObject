@@ -1,14 +1,7 @@
 package page;
 
-import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.Selenide;
-import com.codeborne.selenide.SelenideDriver;
-import com.codeborne.selenide.SelenideElement;
-import com.codeborne.selenide.impl.PageSourceExtractor;
-import org.openqa.selenium.By;
-import static com.codeborne.selenide.CollectionCondition.texts;
 import static com.codeborne.selenide.Selenide.$;
-import static com.codeborne.selenide.Selenide.$$;
 import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
 
 public class LoginPage {
@@ -35,16 +28,16 @@ public class LoginPage {
         //SelenideElement foo=$(".paywall__auth__form__submit-wrap:nth-child(5) > .paywall__auth__form__submit").shouldHave(Condition.exactText("Зарегистрироваться")).size()==0;
 
         if(getWebDriver().getPageSource().contains("Зарегистрироваться")==true){ //метод "getWebDriver()" позволяет использовать код selenium в selenide. Метод "getPageSource()" не содержит в себе задержки "implicit wait" и просто проверяет текст на странице. https://www.youtube.com/watch?v=EoRHq5mhxxQ
-            $(By.cssSelector(".paywall__auth__tabs__item:nth-child(2)")).click();
-            $(By.cssSelector(".paywall__auth__form__row:nth-child(1) .paywall__auth__form__input")).val(text);}
+            $(".paywall__auth__tabs__item:nth-child(2)").click();
+            $(".paywall__auth__form__row:nth-child(1) .paywall__auth__form__input").val(text);}
         else {
-            $(By.cssSelector(".paywall__auth__form__row:nth-child(1) .paywall__auth__form__input")).val(text); }
+            $(".paywall__auth__form__row:nth-child(1) .paywall__auth__form__input").val(text); }
 
         return this;
     }
 
     public LoginPage enterPassword(String text) {
-        $(By.cssSelector(".js-login-validate > .paywall__auth__form__row:nth-child(2) .paywall__auth__form__input")).val(text);
+        $(".js-login-validate > .paywall__auth__form__row:nth-child(2) .paywall__auth__form__input").val(text);
         return this;
     }
 
