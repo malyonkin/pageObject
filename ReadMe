@@ -1,0 +1,4 @@
+    <parameter name="login" value="autotest"></parameter>
+    <parameter name="password" value="autotest1315"></parameter>
+    <parameter name="email" value="amalenkin@rbc.ru"></parameter>
+    <parameter name="passwordFaild" value="inCorrectPassword"></parameter>
