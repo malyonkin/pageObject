@@ -1,4 +1,6 @@
 import com.codeborne.selenide.*;
+
+import static com.codeborne.selenide.Selectors.byText;
 import static com.codeborne.selenide.Selenide.*;
 
 import org.junit.jupiter.api.*;
@@ -27,7 +29,7 @@ public class LoginTest {
     LoginPage auth = new LoginPage();
 
     @BeforeEach //хорошая статья по нотификации jUnit - https://www.vogella.com/tutorials/JUnit/article.html
-    public void setup() {
+    public void setup() { //То, что выполняется до запуска тестов (@Test)
         //Configuration.browser="firefox"; //запуск тестов в браузере "firefox". Можно положить драйвер в папку с проектом (и обращаться по относительному пути). Можно скачивать из Интернета драйвер - https://automation-remarks.com/selenium-webdriver-manager/index.html
         //Configuration.browser = "org.openqa.selenium.safari.SafariDriver"; ////запуск тестов в браузере "safari"
         //Configuration.browser = "opera"; //https://ru.stackoverflow.com/questions/1159095/%D0%9A%D0%B0%D0%BA-%D0%B7%D0%B0%D1%81%D1%82%D0%B0%D0%B2%D0%B8%D1%82%D1%8C-selenide-%D0%BE%D1%82%D0%BA%D1%80%D1%8B%D1%82%D1%8C-%D0%9E%D0%BF%D0%B5%D1%80%D1%83-%D0%B2%D0%BC%D0%B5%D1%81%D1%82%D0%BE-%D0%9B%D0%B8%D1%81%D0%B8%D1%86%D1%8B
@@ -60,8 +62,8 @@ public class LoginTest {
 
         String cookieRat = response.getCookie("rat"); //получить Куку из ответа сервера по Имени куки - getCookie("cookieName")
         String cookieRa_session = response.getCookie("ra_session");
-        System.out.println("rat: " + cookieRat);
-        System.out.println("ra_session: " + cookieRa_session);
+        //System.out.println("rat: " + cookieRat);
+        //System.out.println("ra_session: " + cookieRa_session);
 
         Cookie RAT = new Cookie("rat", cookieRat); //сохранение куки в формате - ключ: значение
         //System.out.println("Смотри сюда - rat: " + cookieRat);
@@ -70,7 +72,7 @@ public class LoginTest {
         return new Cookie[] {RAT, RA_SESSION};
     }
 
-    @Test
+    @org.junit.jupiter.api.Test
     public void useCookie(){
         Cookie result[] = APIauthUser();
         System.out.println(result[0]);
@@ -79,10 +81,9 @@ public class LoginTest {
         getWebDriver().manage().addCookie(result[0]); //подставляем куку в браузер
         getWebDriver().manage().addCookie(result[1]);
         refresh(); //Обновление страницы, чтобы подтянулись куки и прошла авторизация WebDriverRunner.getWebDriver().navigate().refresh();
-        sleep(5000);
         menuUser.clickMenu();
         menuUser.exit();
-        sleep(3000);
+        sleep(1000);
     }
 
     @DisplayName("Успашная авторизация") //имя теста
@@ -102,15 +103,15 @@ public class LoginTest {
     public void logout(){
         menuUser.clickMenu();
         menuUser.exit();
-        $(".paywall__auth__title").shouldHave(Condition.exactText("Чтобы начать, зарегистрируйтесь или войдите1")); //Check logaut. Минус, не скрываем проверку в читабельный/понятный вид
+        $(".paywall__auth__title").shouldHave(Condition.exactText("Чтобы начать, зарегистрируйтесь или войдите")); //Check logaut. Минус, не скрываем проверку в читабельный/понятный вид
+        $(byText("Вход с Apple")).shouldBe(Condition.visible);//byText - поиск по тексту
     }
 
-    @Test //повторный вход в систему
+    @org.junit.jupiter.api.Test //повторный вход в систему
     public void correctLoginNext() {
         auth.enterUsername(USER_LOGIN);
         auth.enterPassword(USER_PASSWORD);
         auth.submit();
-        check.loginCheck();
     }
 
     /*@AfterEach
