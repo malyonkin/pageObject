@@ -1,0 +1,1 @@
+{"uuid":"88213f5b-729a-4ae4-b518-771f372b790d","name":"getEmail()","children":["526b63a8-dbed-43dc-aaa9-018532157c8f"],"befores":[{"name":"setup","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1608286697640,"stop":1608286697641}],"afters":[],"links":[],"start":1608286697637,"stop":1608286698090}

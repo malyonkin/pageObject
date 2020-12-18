@@ -1,44 +1,41 @@
-import com.codeborne.selenide.*;
+import com.codeborne.selenide.Condition;
+import com.codeborne.selenide.Configuration;
+import com.codeborne.selenide.Selenide;
+import com.codeborne.selenide.logevents.SelenideLogger;
+import io.qameta.allure.Epic;
+import io.qameta.allure.restassured.AllureRestAssured;
+import io.qameta.allure.selenide.AllureSelenide;
+import io.restassured.RestAssured;
+import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.builder.ResponseSpecBuilder;
+import io.restassured.http.ContentType;
+import io.restassured.path.json.JsonPath;
+import io.restassured.response.Response;
+import io.restassured.response.ResponseBody;
+import io.restassured.specification.RequestSpecification;
+import io.restassured.specification.ResponseSpecification;
+import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.openqa.selenium.Cookie;
+import page.*;
+
+import java.util.regex.Pattern;
 
 import static com.codeborne.selenide.Condition.text;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selectors.byText;
 import static com.codeborne.selenide.Selenide.*;
-
-import io.restassured.authentication.PreemptiveBasicAuthScheme;
-import io.restassured.builder.RequestSpecBuilder;
-import io.restassured.builder.ResponseBuilder;
-import io.restassured.builder.ResponseSpecBuilder;
-import io.restassured.filter.log.RequestLoggingFilter;
-import io.restassured.filter.log.ResponseLoggingFilter;
-import io.restassured.parsing.Parser;
-import io.restassured.path.json.JsonPath;
-import io.restassured.response.ResponseBody;
-import io.restassured.specification.RequestSpecification;
-import io.restassured.specification.ResponseSpecification;
-import org.junit.jupiter.api.*;
-import org.openqa.selenium.Cookie;
-
-import page.*;
-
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import io.restassured.response.Response;
-import org.apache.http.HttpStatus;
-
-import java.util.List;
-import java.util.regex.Pattern;
-
-import static com.codeborne.selenide.Selenide.page;
 import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
-import static io.restassured.RestAssured.given;
-import static io.restassured.RestAssured.when;
-
 import static config.userConfig.USER_LOGIN;
 import static config.userConfig.USER_PASSWORD;
+import static io.restassured.RestAssured.given;
+import static io.restassured.RestAssured.when;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsEqual.equalTo;
-
+//mvn test -D groups=smoke //запуск тестов только с @Teg - smoke
 //https://selenide.gitbooks.io/user-guide/content/ru/pageobjects.html
 public class LoginTest {
     //создание объектов классов пакета "page"
@@ -52,7 +49,7 @@ public class LoginTest {
             .setBasePath("/user/{name}/")
             .build();
 
-    final ResponseSpecification responseSpec = new ResponseSpecBuilder()
+    final ResponseSpecification responseSpec = new ResponseSpecBuilder() //Крутой проект - https://github.com/Biloleg/RestAshuredDemo
             .expectStatusCode(200)
             .expectBody("$",hasKey("data")) //Проверка наличия секции "data"
             .expectResponseTime(lessThan(5000L))
@@ -70,10 +67,13 @@ public class LoginTest {
         Configuration.fastSetValue = true;
         RestAssured.baseURI = "https://auth.rbc.ru/v2"; //URL API
         RestAssured.useRelaxedHTTPSValidation(); //расслабленной проверки HTTP
+
+        RestAssured.filters(new AllureRestAssured()); //ВАЖНО: подключение логирования rest assured к Allure
         //RestAssured.filters(new RequestLoggingFilter(), new ResponseLoggingFilter()); //Включение логирования во всех API assured тестах
         //open("https://auth.rbc.ru/login?tab=enter&from=login_topline", LoginPage.class);
         //System.setProperty("chromeoptions.mobileEmulation", "deviceName=iphone X");
         //Configuration.browserVersion; //как автоматически обновлять версии драйверов?
+        SelenideLogger.addListener("AllureSelenide", new AllureSelenide().screenshots(true).savePageSource(false)); //подключение Allure к Selenide
     }
 
     //Используется для авторизации через API. Вынести из теста в main. Пример с json - https://automation-remarks.com/2017/code-generation/index.html
@@ -122,6 +122,9 @@ public class LoginTest {
     }
 
     @Test
+    @DisplayName("API")
+    @Tag("smoke")
+    @Epic("login")
     public void EnterLogin1() {
         given()
                 .contentType("application/json; charset=UTF-8")
@@ -135,6 +138,7 @@ public class LoginTest {
                 .post("/user/login/");
     }
 
+    @Tag("test")
     @Test
     public void getEmail2(){
         //given().log().body()
@@ -150,6 +154,7 @@ public class LoginTest {
                 .body(matchesPattern((pattern))); //поиск/проверка получения е-майла на наличие символа @
     }
 
+    @Tag("test")
     @Test
     public void EnterLogin2() {
         given() //инфо для отправки нашего запроса. ВАЖНО: дублируется боди с блоком when
@@ -167,6 +172,7 @@ public class LoginTest {
                 .time(lessThan(5000L)); //проверка - если тест будет обрабатывать больше 5 секунт, то статус теста будет failed
     }
 
+    @Tag("test")
     @Test
     public void UsingSpeca() { //С использованием спецификации см. BeforEach
         given() //инфо для отправки нашего запроса. ВАЖНО: дублируется боди с блоком when
@@ -181,6 +187,7 @@ public class LoginTest {
                 .body("data.session_id", notNullValue());
     }
 
+    @Tag("test")
     @Test
     public void APIauthUserGet() { //https://www.baeldung.com/rest-assured-header-cookie-parameter
         given().cookie("session_id", EnterLogin()).when().get("/user/info/") //используем куки/token/auth для запроса
@@ -191,6 +198,7 @@ public class LoginTest {
                 .body("data.profile.email", equalTo("rbcuser@yandex.ru")); //ВАЖНО: Обратить внимание на классы, которые перечислены через точку - data.profile...
     }
 
+    @Tag("test")
     @Test
     public void APIauthUserTest1() {
         Response response = given()
@@ -220,6 +228,7 @@ public class LoginTest {
         System.out.println("Имя Пользователя В системе - "+usernamesSystem);
 }
 
+    @Tag("test")
     @Test
     public void getEmail(){ //сервер выдачи временного e-mail-а
         //given().queryParam("q", "john").when().get("https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1")
@@ -231,6 +240,7 @@ public class LoginTest {
                 .body("", notNullValue()); //проверяем, что поле не пустое
     }
 
+    @Tag("test")
     @Test
     public void getEmail1(){ //забираем результаты запроса
         Response response = given()
@@ -242,6 +252,7 @@ public class LoginTest {
 
     }
 
+    @Tag("test")
     @Test
     public void useCookieWithLoginGUI(){
         Cookie result[] = APIauthUser();
@@ -268,6 +279,7 @@ public class LoginTest {
         check.loginCheck(); //выполняется проверка сценария, которая ИМЕННО тестирует наш сценарий
     }
 
+    @Tag("test")
     @Test //Выход из логина
     //если у нас появляется ошибка в тесте, остальные тесты (ниже) запускаются, процесс тестирования/компиляции следующих тестов не останавливается
     public void logout(){
@@ -277,13 +289,19 @@ public class LoginTest {
         $(byText("Вход с Apple")).shouldBe(Condition.visible);//byText - поиск по тексту
     }
 
+    @DisplayName("API")
+    @Tag("smoke")
+    @Epic("login")
     @Test //повторный вход в систему
     public void correctLoginNext() {
+        open("/");
         auth.enterUsername(USER_LOGIN);
         auth.enterPassword(USER_PASSWORD);
         auth.submit();
+        //Selenide.closeWebDriver();
     }
 
+    @Tag("test")
     @Test //повторный вход в систему
     public void PO_1() {
         open("/", MainPage.class) //https://automation-remarks.com/2016/selenide-shadow-sides/index.html
@@ -291,13 +309,14 @@ public class LoginTest {
             .enterPassword(USER_PASSWORD);
     }
 
-    @Test //повторный вход в систему
+    /*@Test //повторный вход в систему
     public void PO_2() {
         var loginpage = LoginPage.open();
         loginpage.enterUsername(USER_LOGIN);
         loginpage.enterPassword(USER_PASSWORD);
-    }
+    }*/
 
+    @Tag("test")
     @Test //https://selenide.org/documentation/page-objects.html
     public void PO_3() {
         LoginPage loginPage1 = open("/", LoginPage.class)

@@ -1,0 +1,1 @@
+{"uuid":"f1d2dd02-9532-41bd-9097-fa4409280eff","name":"Успашная авторизация","children":["f62332e7-f481-4a07-9407-af144c819155"],"befores":[{"name":"setup","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1608286672030,"stop":1608286672033}],"afters":[],"links":[],"start":1608286672024,"stop":1608286676215}
