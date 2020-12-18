@@ -1,6 +1,7 @@
 package page;
 
 import com.codeborne.selenide.*;
+import io.qameta.allure.Step;
 import lombok.NonNull;
 
 import static com.codeborne.selenide.Selenide.*;
@@ -8,6 +9,7 @@ import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
 
 public class LoginPage {
 
+    @Step
     public static LoginPage open() {
         Selenide.open("/");
         return new LoginPage();
@@ -26,6 +28,7 @@ public class LoginPage {
     }*/
 
     //@NonNull
+    @Step
     public LoginPage enterUsername(@NonNull String text) {
 
         //SelenideElement foo=$(".paywall__auth__form__submit-wrap:nth-child(5) > .paywall__auth__form__submit").shouldHave(Condition.exactText("Зарегистрироваться")).size()==0;
@@ -39,17 +42,20 @@ public class LoginPage {
         return this;
     }
 
+    @Step
     public LoginPage enterPassword(String text) {
         $(".js-login-validate > .paywall__auth__form__row:nth-child(2) .paywall__auth__form__input").val(text);
         return this;
     }
 
     //ВАЖНО: здесь передается инициализация браузера и URL - public LoginPage open()
+    @Step
     public LoginPage enterPassword1(String query) {
         $(".js-login-validate > .paywall__auth__form__row:nth-child(2) .paywall__auth__form__input").setValue(query).pressEnter();
         return page(LoginPage.class);
     }
 
+    @Step
     public LoginPage submit() {
         $(".paywall__auth__form__submit-wrap > .js-yandex-counter").click();
         return null;

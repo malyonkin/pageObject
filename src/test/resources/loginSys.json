@@ -1,0 +1,23 @@
+{
+  "data": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": [
+        "token",
+        "session_id"
+      ]
+    },
+    "token": {
+      "type": "String",
+      "minLength": 25,
+      "maxLength": 25
+    },
+    "session_id": {
+      "type": "String",
+      "minLength": 32,
+      "maxLength": 32,
+      "pattern": "[a-z0-9]"
+    }
+  }
+}

@@ -29,13 +29,14 @@ import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selectors.byText;
 import static com.codeborne.selenide.Selenide.*;
 import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
+import static com.jayway.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static config.userConfig.USER_LOGIN;
 import static config.userConfig.USER_PASSWORD;
 import static io.restassured.RestAssured.given;
 import static io.restassured.RestAssured.when;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsEqual.equalTo;
-//mvn test -D groups=smoke //запуск тестов только с @Teg - smoke
+//mvn clean test -D groups=smoke //запуск тестов только с @Teg - smoke
 //https://selenide.gitbooks.io/user-guide/content/ru/pageobjects.html
 public class LoginTest {
     //создание объектов классов пакета "page"
@@ -130,8 +131,8 @@ public class LoginTest {
                 .contentType("application/json; charset=UTF-8")
                 .accept(ContentType.JSON)
                 .body("{\"email\": \"" + USER_LOGIN + "\", \"password\":\"qwerty\"}")
-                .when()
-                .then().log().all() //Включаем логирование
+        .when().log().body()
+        .then().log().all() //Включаем логирование
                 .statusCode(200) //SC_OK проверяет статус 200
                 .body("data.session_id", notNullValue()) //ВАЖНО: Обратить внимание на Data.session .Проверка на наличие Token.
                 .with()
@@ -140,7 +141,7 @@ public class LoginTest {
 
     @Tag("test")
     @Test
-    public void getEmail2(){
+    public void getEmail2(){ //Параллельный запуск API - https://github.com/Biloleg/RestAshuredDemo/blob/master/src/test/java/performance/RestAssuredThread.java
         //given().log().body()
         String pattern = "^(.*)@*";
         Pattern r = Pattern.compile(pattern);
@@ -154,21 +155,21 @@ public class LoginTest {
                 .body(matchesPattern((pattern))); //поиск/проверка получения е-майла на наличие символа @
     }
 
-    @Tag("test")
+    @Tag("smoke")
     @Test
-    public void EnterLogin2() {
+    public void EnterLogin2() { //https://drive.google.com/file/d/1tdGlinMMrwxMpXnkdg--6V3ySzE4BMrX/view
         given() //инфо для отправки нашего запроса. ВАЖНО: дублируется боди с блоком when
                 .baseUri("https://auth.rbc.ru/v2")
                 .header("content-Type", "application/json")
                 .basePath("/user/login/")
                 //.param("page",2)
-                .log().body()
-        .when().log().all() //тип запроса - get, post
+        .when().log().body() //тип запроса - get, post
                 .body("{\"email\": \"" + USER_LOGIN + "\", \"password\":\"qwerty\"}")
                 .post()
         .then().log().all() //Делаются проверки над ответом от Сервера
                 .statusCode(200) //SC_OK проверяет статус 200
                 .body("data.session_id", notNullValue()) //ОЧЕНЬ ВАЖНО: Можно использовать индексацию - data.session_id[1].profile и поддерживаются условия -  data.session_id{it.rate<10}. https://seleniumcamp.com/talk/best-practices-in-api-testing-with-rest-assured/
+                .body(matchesJsonSchemaInClasspath("loginSys.json")) //контрактное тестирование
                 .time(lessThan(5000L)); //проверка - если тест будет обрабатывать больше 5 секунт, то статус теста будет failed
     }
 
@@ -240,7 +241,7 @@ public class LoginTest {
                 .body("", notNullValue()); //проверяем, что поле не пустое
     }
 
-    @Tag("test")
+    @Tag("smoke")
     @Test
     public void getEmail1(){ //забираем результаты запроса
         Response response = given()
