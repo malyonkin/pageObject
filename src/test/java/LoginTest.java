@@ -1,25 +1,43 @@
 import com.codeborne.selenide.*;
 
+import static com.codeborne.selenide.Condition.text;
+import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selectors.byText;
 import static com.codeborne.selenide.Selenide.*;
 
+import io.restassured.authentication.PreemptiveBasicAuthScheme;
+import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.builder.ResponseBuilder;
+import io.restassured.builder.ResponseSpecBuilder;
+import io.restassured.filter.log.RequestLoggingFilter;
+import io.restassured.filter.log.ResponseLoggingFilter;
+import io.restassured.parsing.Parser;
+import io.restassured.path.json.JsonPath;
+import io.restassured.response.ResponseBody;
+import io.restassured.specification.RequestSpecification;
+import io.restassured.specification.ResponseSpecification;
 import org.junit.jupiter.api.*;
 import org.openqa.selenium.Cookie;
 
-import page.LoginPage;
-import page.ProfileMenu;
-import page.СheckLogin;
+import page.*;
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.apache.http.HttpStatus;
 
+import java.util.List;
+import java.util.regex.Pattern;
+
+import static com.codeborne.selenide.Selenide.page;
 import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
-import static org.hamcrest.Matchers.notNullValue;
+import static io.restassured.RestAssured.given;
+import static io.restassured.RestAssured.when;
 
 import static config.userConfig.USER_LOGIN;
 import static config.userConfig.USER_PASSWORD;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.core.IsEqual.equalTo;
 
 //https://selenide.gitbooks.io/user-guide/content/ru/pageobjects.html
 public class LoginTest {
@@ -27,6 +45,19 @@ public class LoginTest {
     СheckLogin check = new СheckLogin();
     ProfileMenu menuUser = new ProfileMenu();
     LoginPage auth = new LoginPage();
+
+    final RequestSpecification requestSpec = new RequestSpecBuilder() //Спецификация для ЗАПРОСОВ API - сокращение дублирования кода. См тест ниже - .spec(requestSpec)
+            .setBaseUri("https://auth.rbc.ru/v2")
+            .setContentType(ContentType.JSON)
+            .setBasePath("/user/{name}/")
+            .build();
+
+    final ResponseSpecification responseSpec = new ResponseSpecBuilder()
+            .expectStatusCode(200)
+            .expectBody("$",hasKey("data")) //Проверка наличия секции "data"
+            .expectResponseTime(lessThan(5000L))
+            .build();
+
 
     @BeforeEach //хорошая статья по нотификации jUnit - https://www.vogella.com/tutorials/JUnit/article.html
     public void setup() { //То, что выполняется до запуска тестов (@Test)
@@ -39,24 +70,24 @@ public class LoginTest {
         Configuration.fastSetValue = true;
         RestAssured.baseURI = "https://auth.rbc.ru/v2"; //URL API
         RestAssured.useRelaxedHTTPSValidation(); //расслабленной проверки HTTP
+        //RestAssured.filters(new RequestLoggingFilter(), new ResponseLoggingFilter()); //Включение логирования во всех API assured тестах
         //open("https://auth.rbc.ru/login?tab=enter&from=login_topline", LoginPage.class);
         //System.setProperty("chromeoptions.mobileEmulation", "deviceName=iphone X");
         //Configuration.browserVersion; //как автоматически обновлять версии драйверов?
     }
 
-    //@RepeatedTest(2) //кол-во повторений теста
-    @org.junit.jupiter.api.Test //авторизация через API
-    public Cookie[] APIauthUser() {
+    //Используется для авторизации через API. Вынести из теста в main. Пример с json - https://automation-remarks.com/2017/code-generation/index.html
+    public Cookie[] APIauthUser() { //Здесь мы берем только куки
         //Set-Cookie: rat=3zln2EfoVYCPz_9HnBINRpAFmO; --он же token
         //Set-Cookie: ra_session=7a016aafcfa7483f86c0028d09d7008f; --он же session_id
-        Response response = RestAssured.given().log().cookies()
+        Response response = given().log().cookies()
                 .contentType("application/json; charset=UTF-8")
                 .accept(ContentType.JSON)
                 .body("{\"email\": \"" + USER_LOGIN + "\", \"password\":\"qwerty\"}")
                 .when()
                 .then().log().all()
                 .statusCode(HttpStatus.SC_OK) //SC_OK проверяет статус 200
-                .body("data.session_id",notNullValue()) //Проверка на наличие Token
+                .body("data.session_id", notNullValue()) //Проверка на наличие Token
                 .with()
                 .post("/user/login/");
 
@@ -69,11 +100,150 @@ public class LoginTest {
         //System.out.println("Смотри сюда - rat: " + cookieRat);
         Cookie RA_SESSION = new Cookie("ra_session", cookieRa_session);
 
-        return new Cookie[] {RAT, RA_SESSION};
+        return new Cookie[]{RAT, RA_SESSION};
     }
 
-    @org.junit.jupiter.api.Test
-    public void useCookie(){
+    //Здесь берём куку. Нужно перенести в main класс
+    public String EnterLogin() {
+        Response response = given()
+                .contentType("application/json; charset=UTF-8")
+                .accept(ContentType.JSON)
+                .body("{\"email\": \"" + USER_LOGIN + "\", \"password\":\"qwerty\"}")
+                .when()
+                .then().log().all() //Включаем логирование
+                .statusCode(200) //SC_OK проверяет статус 200
+                .body("data.session_id", notNullValue()) //ВАЖНО: Обратить внимание на Data.session .Проверка на наличие Token.
+                .with()
+                .post("/user/login/");
+        String cookieRa_session1 = response.getCookie("ra_session");
+        System.out.println("Долбанная кука - " + cookieRa_session1);
+
+        return cookieRa_session1;
+    }
+
+    @Test
+    public void EnterLogin1() {
+        given()
+                .contentType("application/json; charset=UTF-8")
+                .accept(ContentType.JSON)
+                .body("{\"email\": \"" + USER_LOGIN + "\", \"password\":\"qwerty\"}")
+                .when()
+                .then().log().all() //Включаем логирование
+                .statusCode(200) //SC_OK проверяет статус 200
+                .body("data.session_id", notNullValue()) //ВАЖНО: Обратить внимание на Data.session .Проверка на наличие Token.
+                .with()
+                .post("/user/login/");
+    }
+
+    @Test
+    public void getEmail2(){
+        //given().log().body()
+        String pattern = "^(.*)@*";
+        Pattern r = Pattern.compile(pattern);
+
+        when() //для работы верхней строки .when
+                .get("https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1").
+        then()
+                .assertThat()
+                .statusCode(200)
+                //.body("", equalTo("/\A[^@]+@([^@\.]+\.)+[^@\.]+\z/")) //Не используются рег выражения
+                .body(matchesPattern((pattern))); //поиск/проверка получения е-майла на наличие символа @
+    }
+
+    @Test
+    public void EnterLogin2() {
+        given() //инфо для отправки нашего запроса. ВАЖНО: дублируется боди с блоком when
+                .baseUri("https://auth.rbc.ru/v2")
+                .header("content-Type", "application/json")
+                .basePath("/user/login/")
+                //.param("page",2)
+                .log().body()
+        .when().log().all() //тип запроса - get, post
+                .body("{\"email\": \"" + USER_LOGIN + "\", \"password\":\"qwerty\"}")
+                .post()
+        .then().log().all() //Делаются проверки над ответом от Сервера
+                .statusCode(200) //SC_OK проверяет статус 200
+                .body("data.session_id", notNullValue()) //ОЧЕНЬ ВАЖНО: Можно использовать индексацию - data.session_id[1].profile и поддерживаются условия -  data.session_id{it.rate<10}. https://seleniumcamp.com/talk/best-practices-in-api-testing-with-rest-assured/
+                .time(lessThan(5000L)); //проверка - если тест будет обрабатывать больше 5 секунт, то статус теста будет failed
+    }
+
+    @Test
+    public void UsingSpeca() { //С использованием спецификации см. BeforEach
+        given() //инфо для отправки нашего запроса. ВАЖНО: дублируется боди с блоком when
+                .spec(requestSpec)
+                .pathParam("name","login") //смотри requestSpec - параметризация
+                .log().body()
+                .when().log().all() //тип запроса - get, post
+                .body("{\"email\": \"" + USER_LOGIN + "\", \"password\":\"qwerty\"}")
+                .post()
+                .then().log().all() //Делаются проверки над ответом от Сервера
+                .spec(responseSpec)
+                .body("data.session_id", notNullValue());
+    }
+
+    @Test
+    public void APIauthUserGet() { //https://www.baeldung.com/rest-assured-header-cookie-parameter
+        given().cookie("session_id", EnterLogin()).when().get("/user/info/") //используем куки/token/auth для запроса
+                .then()
+                .statusCode(200)
+                .and()
+                .assertThat()
+                .body("data.profile.email", equalTo("rbcuser@yandex.ru")); //ВАЖНО: Обратить внимание на классы, которые перечислены через точку - data.profile...
+    }
+
+    @Test
+    public void APIauthUserTest1() {
+        Response response = given()
+                .cookie("session_id", EnterLogin())
+                //.cookie("session_id", "34538b1b4ff9450cac9f6b848e407ffe")
+                .when()
+                .then().log().all() //Включаем логирование
+                .statusCode(200) //SC_OK проверяет статус 200
+                .body("data.profile.display_name", equalTo("Платный чувак"))
+                .with()
+                .get("/user/info/");
+
+        /*"data": {
+            "profile": {
+                "display_name": "Платный чувак",*/
+
+    String responseBody1 = response.getBody().asString();
+    JsonPath values1 = new JsonPath(responseBody1);
+    String categories = values1.getString("data.profile");
+        System.out.println("Показать всё что в DATA - "+categories);
+
+    String usernames = response.jsonPath().getString("data.profile.display_name");
+    String userstatus = response.jsonPath().getString("status");
+    String usernamesSystem = response.jsonPath().get("data.profile.user_name");
+        System.out.println("Имя Пользователя На экране - "+usernames);
+        System.out.println("Статус ответа - "+userstatus);
+        System.out.println("Имя Пользователя В системе - "+usernamesSystem);
+}
+
+    @Test
+    public void getEmail(){ //сервер выдачи временного e-mail-а
+        //given().queryParam("q", "john").when().get("https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1")
+        when()
+                .get("https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1").
+        then().statusCode(200)
+                .and()
+                .assertThat()
+                .body("", notNullValue()); //проверяем, что поле не пустое
+    }
+
+    @Test
+    public void getEmail1(){ //забираем результаты запроса
+        Response response = given()
+                .when()
+                .get("https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1");
+        ResponseBody body = response.getBody();
+        System.out.println("А вот и наш e-mail из BODY: " + body.asString());
+
+
+    }
+
+    @Test
+    public void useCookieWithLoginGUI(){
         Cookie result[] = APIauthUser();
         System.out.println(result[0]);
         System.out.println(result[1]);
@@ -89,7 +259,7 @@ public class LoginTest {
     @DisplayName("Успашная авторизация") //имя теста
     @Tag("fast") //используется для запуска разных тестов. В данном случае используется тег "быстрый профиль" (он же короткий)
     //@EnumSource(value = Users.class, names = {"Ivanov", "Petrov"})
-    @org.junit.jupiter.api.Test
+    @Test
     public void correctLogin() {
         auth.open().enterUsername(USER_LOGIN); //только в этом месте инициализируем открытие/запуск (один раз для всех тестов ниже) драйвера Chrome
         auth.enterPassword(USER_PASSWORD);
@@ -98,7 +268,7 @@ public class LoginTest {
         check.loginCheck(); //выполняется проверка сценария, которая ИМЕННО тестирует наш сценарий
     }
 
-    @org.junit.jupiter.api.Test //Выход из логина
+    @Test //Выход из логина
     //если у нас появляется ошибка в тесте, остальные тесты (ниже) запускаются, процесс тестирования/компиляции следующих тестов не останавливается
     public void logout(){
         menuUser.clickMenu();
@@ -107,11 +277,38 @@ public class LoginTest {
         $(byText("Вход с Apple")).shouldBe(Condition.visible);//byText - поиск по тексту
     }
 
-    @org.junit.jupiter.api.Test //повторный вход в систему
+    @Test //повторный вход в систему
     public void correctLoginNext() {
         auth.enterUsername(USER_LOGIN);
         auth.enterPassword(USER_PASSWORD);
         auth.submit();
+    }
+
+    @Test //повторный вход в систему
+    public void PO_1() {
+        open("/", MainPage.class) //https://automation-remarks.com/2016/selenide-shadow-sides/index.html
+            .enterUsername(USER_LOGIN)
+            .enterPassword(USER_PASSWORD);
+    }
+
+    @Test //повторный вход в систему
+    public void PO_2() {
+        var loginpage = LoginPage.open();
+        loginpage.enterUsername(USER_LOGIN);
+        loginpage.enterPassword(USER_PASSWORD);
+    }
+
+    @Test //https://selenide.org/documentation/page-objects.html
+    public void PO_3() {
+        LoginPage loginPage1 = open("/", LoginPage.class)
+                .enterUsername(USER_LOGIN)
+                .enterPassword(USER_PASSWORD)
+                .submit();
+        //loginPage1.submit();
+        //AuthResultsPage authResultsPage = loginPage1.enterUsername(USER_LOGIN).enterPassword(USER_PASSWORD);
+        AuthResultsPage authResultsPage = new AuthResultsPage();
+        authResultsPage.profile().should(visible);
+        authResultsPage.profile().shouldHave(text("Отключение баннеров"));
     }
 
     /*@AfterEach

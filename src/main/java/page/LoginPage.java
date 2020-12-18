@@ -1,18 +1,17 @@
 package page;
 
-import com.codeborne.selenide.Condition;
-import com.codeborne.selenide.ElementsCollection;
-import com.codeborne.selenide.ElementsContainer;
-import com.codeborne.selenide.Selenide;
-import static com.codeborne.selenide.Selenide.$;
+import com.codeborne.selenide.*;
+import lombok.NonNull;
+
+import static com.codeborne.selenide.Selenide.*;
 import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
 
 public class LoginPage {
 
-    public LoginPage open() {
-
+    public static LoginPage open() {
         Selenide.open("/");
-        return this;
+        return new LoginPage();
+        //return this;
     }
 
 /*    public boolean CheckRegForm(){
@@ -26,7 +25,8 @@ public class LoginPage {
         return notExists;
     }*/
 
-    public LoginPage enterUsername(String text) {
+    //@NonNull
+    public LoginPage enterUsername(@NonNull String text) {
 
         //SelenideElement foo=$(".paywall__auth__form__submit-wrap:nth-child(5) > .paywall__auth__form__submit").shouldHave(Condition.exactText("Зарегистрироваться")).size()==0;
 
@@ -44,7 +44,15 @@ public class LoginPage {
         return this;
     }
 
-    public void submit() {
+    //ВАЖНО: здесь передается инициализация браузера и URL - public LoginPage open()
+    public LoginPage enterPassword1(String query) {
+        $(".js-login-validate > .paywall__auth__form__row:nth-child(2) .paywall__auth__form__input").setValue(query).pressEnter();
+        return page(LoginPage.class);
+    }
+
+    public LoginPage submit() {
         $(".paywall__auth__form__submit-wrap > .js-yandex-counter").click();
+        return null;
     }
 }
+
