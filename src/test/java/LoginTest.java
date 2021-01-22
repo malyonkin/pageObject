@@ -1,6 +1,7 @@
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
+import com.codeborne.selenide.junit5.TextReportExtension;
 import com.codeborne.selenide.logevents.SelenideLogger;
 import io.qameta.allure.Epic;
 import io.qameta.allure.restassured.AllureRestAssured;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.openqa.selenium.Cookie;
 import page.*;
 
@@ -38,6 +40,8 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsEqual.equalTo;
 //mvn clean test -D groups=smoke //запуск тестов только с @Teg - smoke
 //https://selenide.gitbooks.io/user-guide/content/ru/pageobjects.html
+
+@ExtendWith({TextReportExtension.class}) //Подключение отчётности в консоли
 public class LoginTest {
     //создание объектов классов пакета "page"
     СheckLogin check = new СheckLogin();
