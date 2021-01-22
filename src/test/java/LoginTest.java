@@ -309,7 +309,7 @@ public class LoginTest {
     @Tag("test")
     @Test //повторный вход в систему
     public void PO_1() {
-        open("/", MainPage.class) //https://automation-remarks.com/2016/selenide-shadow-sides/index.html
+        open("/", MainPage.class) ////не использовать, это костыль для FindBy. https://automation-remarks.com/2016/selenide-shadow-sides/index.html
             .enterUsername(USER_LOGIN)
             .enterPassword(USER_PASSWORD);
     }
@@ -324,7 +324,7 @@ public class LoginTest {
     @Tag("test")
     @Test //https://selenide.org/documentation/page-objects.html
     public void PO_3() {
-        LoginPage loginPage1 = open("/", LoginPage.class)
+        LoginPage loginPage1 = open("/", LoginPage.class) //не использовать, это костыль для FindBy
                 .enterUsername(USER_LOGIN)
                 .enterPassword(USER_PASSWORD)
                 .submit();
